@@ -129,9 +129,8 @@ class UpdateAppointmentTests(TestCase):
 
 
 class AppointmentBlockingTests(TestCase):
-    @patch("panel.services.appointment_service._get_active_hospital_id", return_value="hospital-1")
     @patch("panel.services.appointment_service.get_supabase_client")
-    def test_is_appointment_time_blocked_true_for_partial_holiday(self, mock_get_client, _):
+    def test_is_appointment_time_blocked_true_for_partial_holiday(self, mock_get_client):
         query = _build_query(
             [
                 {
@@ -145,19 +144,19 @@ class AppointmentBlockingTests(TestCase):
         mock_supabase.table.return_value = query
         mock_get_client.return_value = mock_supabase
 
+        request = SimpleNamespace(session={"hospital_id": "hospital-1"})
         is_blocked = appointment_service.is_appointment_time_blocked(
             appointment_date=date(2024, 4, 1),
             appointment_time="10:15",
-            request=object(),
+            request=request,
         )
 
         self.assertTrue(is_blocked)
         query.eq.assert_any_call("date", "2024-04-01")
         query.eq.assert_any_call("hospital_id", "hospital-1")
 
-    @patch("panel.services.appointment_service._get_active_hospital_id", return_value="hospital-1")
     @patch("panel.services.appointment_service.get_supabase_client")
-    def test_is_appointment_time_blocked_returns_false_for_outside_range(self, mock_get_client, _):
+    def test_is_appointment_time_blocked_returns_false_for_outside_range(self, mock_get_client):
         query = _build_query(
             [
                 {
@@ -171,10 +170,12 @@ class AppointmentBlockingTests(TestCase):
         mock_supabase.table.return_value = query
         mock_get_client.return_value = mock_supabase
 
+        request = SimpleNamespace(session={"hospital_id": "hospital-1"})
         self.assertFalse(
             appointment_service.is_appointment_time_blocked(
                 appointment_date=date(2024, 4, 1),
                 appointment_time="13:00",
+                request=request,
             )
         )
 
